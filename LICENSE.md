@@ -1,7 +1,7 @@
 # LICENSE
 
-## Sono-Server Source-Available Copyleft License
-**Version 1.1 (September 2026)**
+## Sono-Server Source-Available License
+**Version 1.1.1 (September 2026)**
 
 Copyright (c) 2026 Nexint. All rights reserved.
 
@@ -9,6 +9,11 @@ Copyright (c) 2026 Nexint. All rights reserved.
 
 ### 1. Overview
 This software ("Sono-Server") is proprietary and source-available. By downloading, installing, forking, hosting, or otherwise interacting with the source code or compiled binaries of this software, you agree to be bound by the terms and conditions outlined in this License and the overarching Nexint Terms of Service (TOS).
+
+---
+
+### 1.5. Third-Party Asset Exclusion
+Notwithstanding any terms in this License, the grants, rights, and copyleft mechanisms provided herein apply strictly and exclusively to the original source code, scripts, and architecture developed under the Nexint banner. This License does not convey, grant, or imply any ownership, distribution rights, or sub-licensing terms over third-party visual graphics, UI sprites, sound effects, or engine assets belonging to Macau Fosfenes Technology Co., Ltd. or the Sonolus platform. All such extracted or decompiled assets remain the sole proprietary property of their respective copyright holders.
 
 ---
 

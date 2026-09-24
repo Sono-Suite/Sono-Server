@@ -83,18 +83,47 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
     if (!coreItem || !coreItem.name) return false;
 
     // Sanitize the folder name to replace spaces with dashes
-    const sanitizedFolderName = coreItem.name.trim().replace(/\s+/g, '-');
+    // Sanitize the folder name to replace spaces with dashes
+    let sanitizedFolderName = coreItem.name.trim().replace(/\s+/g, '-');
+    if(activeCategory === 'engines'){
+        sanitizedFolderName = sanitizedFolderName.toLowerCase();
+    }
+    let targetFolder = path.join(SOURCE_DIR, activeCategory, sanitizedFolderName);
+
+    // ✅ FIXED CONFLICT RESOLUTION GATE
+    if (fs.existsSync(targetFolder)) {
+        try {
+            const existingItemPath = path.join(targetFolder, 'item.json');
+            if (fs.existsSync(existingItemPath)) {
+                const existingItem = JSON.parse(fs.readFileSync(existingItemPath, 'utf8'));
+                
+                // Ensure authors or subtitles are localized strings before direct comparisons
+                const oldAuthor = typeof existingItem.author === 'object' ? (existingItem.author.en || '') : existingItem.author;
+                const newAuthor = typeof coreItem.author === 'object' ? (coreItem.author.en || '') : coreItem.author;
+
+                if (oldAuthor !== newAuthor) {
+                    if (debug) console.log(`[WARN] Naming conflict detected for "${sanitizedFolderName}". Resolving Suffix...`);
+                    
+                    const suffix = coreItem.version ? `v${coreItem.version}` : Math.random().toString(36).substring(2, 6);
+                    sanitizedFolderName = `${sanitizedFolderName}-${suffix}`;
+                    targetFolder = path.join(SOURCE_DIR, activeCategory, sanitizedFolderName);
+                }
+            }
+        } catch (e) { }
+    }
 
     // Load the engines in the engine pool first.
     if (activeCategory === 'engines' && !lookupSourceDir.toLowerCase().includes(ENGINES_POOL_DIR.toLowerCase())) {
-        if (prioritizedEngines.has(sanitizedFolderName.toLowerCase())) {
+        // Safe check matching base or suffixed lower case strings
+        if (prioritizedEngines.has(sanitizedFolderName.toLowerCase()) || prioritizedEngines.has(coreItem.name.trim().replace(/\s+/g, '-').toLowerCase())) {
             if (debug) console.log(`[INFO] Prioritizing ${ENGINES_POOL_DIR}: ${sanitizedFolderName}`);
+            
+            if (fs.existsSync(targetFolder)) {
+                try { fs.rmSync(targetFolder, { recursive: true, force: true }); } catch (cleanupErr) {}
+            }
             return false;
         }
     }
-
-    // Generate the target folder
-    const targetFolder = path.join(SOURCE_DIR, activeCategory, sanitizedFolderName);
     fs.mkdirSync(targetFolder, { recursive: true });
 
     // Configure the correct version
@@ -128,15 +157,33 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
     // Fallback folders
     const fallbackSkin = getFallbackFolder(compiledSkinsPath, "ProSekaFaithful");
     const fallbackBackground = getFallbackFolder(compiledBgPath, "Nexint-V4-BG-min");
-    const fallbackEffect = getFallbackFolder(compiledEffectsPath, "coconut-next-sekai-1");
+    const fallbackEffect = getFallbackFolder(compiledEffectsPath, "sekai_q");
     const fallbackParticle = getFallbackFolder(compiledParticlesPath, "NexintWaterMark");
 
-    // Sanitize the skins (replace spaces with dashes)
-    const sanitizedSkin = (coreItem.skin || coreItem.skin_name || fallbackSkin).trim().replace(/\s+/g, '-');
-    const sanitizedBackground = (coreItem.background || coreItem.background_name || fallbackBackground).trim().replace(/\s+/g, '-');
-    const sanitizedEffect = (coreItem.effect || coreItem.effect_name || fallbackEffect).trim().replace(/\s+/g, '-');
-    const sanitizedParticle = (coreItem.particle || coreItem.particle_name || fallbackParticle).trim().replace(/\s+/g, '-');
-    const sanitizedEngineReference = (coreItem.engine || "Next-RUSH").trim().replace(/\s+/g, '-');
+    // Extract property references by scanning nested API objects first, then flat strings
+    const skinValue = (typeof coreItem.skin === 'object' && coreItem.skin !== null) ? (coreItem.skin.name || coreItem.skin.title) : (coreItem.skin || coreItem.skin_name || fallbackSkin);
+    const bgValue = (typeof coreItem.background === 'object' && coreItem.background !== null) ? (coreItem.background.name || coreItem.background.title) : (coreItem.background || coreItem.background_name || fallbackBackground);
+    const effectValue = (typeof coreItem.effect === 'object' && coreItem.effect !== null) ? (coreItem.effect.name || coreItem.effect.title) : (coreItem.effect || coreItem.effect_name || fallbackEffect);
+    const particleValue = (typeof coreItem.particle === 'object' && coreItem.particle !== null) ? (coreItem.particle.name || coreItem.particle.title) : (coreItem.particle || coreItem.particle_name || fallbackParticle);
+
+    // Sanitize references (replace spaces with dashes)
+    const sanitizedSkin = skinValue.trim().replace(/\s+/g, '-');
+    const sanitizedBackground = bgValue.trim().replace(/\s+/g, '-');
+    const sanitizedEffect = effectValue.trim().replace(/\s+/g, '-');
+    const sanitizedParticle = particleValue.trim().replace(/\s+/g, '-');
+    const sanitizedEngineReference = (coreItem.engine || "Next-RUSH").trim().replace(/\s+/g, '-').toLowerCase();
+
+    // Safe Tag Formatting Loop to ensure string titles are mapped to { en: "title" } localization objects
+    let localizedTags = [];
+    if (Array.isArray(coreItem.tags)) {
+        localizedTags = coreItem.tags.map(tag => {
+            if (!tag) return tag;
+            return {
+                title: typeof tag.title === 'string' ? { en: tag.title } : (tag.title ? ensureLocalized(tag.title) : { en: "" }),
+                ...(tag.icon && { icon: tag.icon })
+            };
+        });
+    }
 
     // Compile everything together into a cleaned item
     const cleanedItem = {
@@ -146,7 +193,7 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
         artists: ensureLocalized(coreItem.artists || coreItem.artists_name || rawObj.artists || ""),
         author: ensureLocalized(coreItem.author),
         description: ensureLocalized(rawObj.description || coreItem.description || ""),
-        tags: Array.isArray(coreItem.tags) ? coreItem.tags : []
+        tags: localizedTags
     };
 
     // Inject more data in the case of engines, levels, etc
@@ -191,17 +238,26 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
 
                 if (debug) console.log(`[INFO] Successfully mapped engine: ${coreItem.name}`);
             } else {
-                // 📦 HANDLING UPLOAD ARCHIVES
-                decompileAsset(coreItem.thumbnail, 'thumbnail.png', targetFolder, lookupSourceDir);
-                decompileAsset(coreItem.data, 'data.json', targetFolder, lookupSourceDir);
-                decompileAsset(coreItem.configuration, 'configuration.json', targetFolder, lookupSourceDir);
+                // 📦 HANDLING UPLOAD ARCHIVES & NESTED API LIST ENGINES
+                const thumbObj = coreItem.thumbnail || (coreItem.skin && coreItem.skin.thumbnail) || { hash: 'thumbnail' };
+                const dataObj = coreItem.data || { hash: 'data' };
+                const configObj = coreItem.configuration || { hash: 'configuration' };
+                
+                const playObj = coreItem.playData || coreItem.play || { hash: 'playData' };
+                const watchObj = coreItem.watchData || coreItem.watch || { hash: 'watchData' };
+                const previewObj = coreItem.previewData || coreItem.preview || { hash: 'previewData' };
+                const tutorialObj = coreItem.tutorialData || coreItem.tutorial || { hash: 'tutorialData' };
 
-                decompileAsset(coreItem.play, 'playData.json', targetFolder, lookupSourceDir);
-                decompileAsset(coreItem.watch, 'watchData.json', targetFolder, lookupSourceDir);
-                decompileAsset(coreItem.preview, 'previewData.json', targetFolder, lookupSourceDir);
-                decompileAsset(coreItem.tutorial, 'tutorialData.json', targetFolder, lookupSourceDir);
+                decompileAsset(thumbObj, 'thumbnail.png', targetFolder, lookupSourceDir);
+                decompileAsset(dataObj, 'data.json', targetFolder, lookupSourceDir);
+                decompileAsset(configObj, 'configuration.json', targetFolder, lookupSourceDir);
+
+                decompileAsset(playObj, 'playData.json', targetFolder, lookupSourceDir);
+                decompileAsset(watchObj, 'watchData.json', targetFolder, lookupSourceDir);
+                decompileAsset(previewObj, 'previewData.json', targetFolder, lookupSourceDir);
+                decompileAsset(tutorialObj, 'tutorialData.json', targetFolder, lookupSourceDir);
                 if (coreItem.rom) decompileAsset(coreItem.rom, 'rom.bin', targetFolder, lookupSourceDir);
-
+                
                 // ✅ THE FIX: Force the written file to update its internal skin mapping property 
                 // if it's an upload archive pulling a ghost "ProSekaFaithful" file reference.
                 try {

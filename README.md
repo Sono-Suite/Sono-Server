@@ -24,6 +24,12 @@ Node.js is required for this server.
 
 This code is under the [Nexint TOS](https://nexint.ca/tos)
 
-However, the [Nexint TOS](https://nexint.ca/tos) is not fully complete, and you should use the included LICENSE.MD file instead.
+Engine assets are not mine, they are the property of UntitledCharts, Sonolus, and more.
+
+However, the [Nexint TOS](https://nexint.ca/tos) is not fully complete, and you should use the included LICENSE.MD file instead. If you're using Sono-Utils, this does not apply, and you should follow the terms set out in Sono-Utils (not Sono-Server)
 
 This code is proprietary and source available.
+
+## AI Disclosure
+
+Parts of this code have been generated with AI. This project falls under AI assisted, but not fully AI generated.

@@ -1,8 +1,11 @@
+const { dateOptions } = require('./config.js');
+global.DateFormatter = new Intl.DateTimeFormat(undefined, dateOptions); // Ensures a global Date Formatter usable in any bot.
+
 const express = require('express');
 const { Sonolus } = require('@sonolus/express');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const AdmZip = require('adm-zip');
 const rateLimit = require('express-rate-limit');
 const readline = require('readline');
@@ -10,10 +13,10 @@ const readline = require('readline');
 // Define the process directory
 // Just to sync up the process of making a new directory.
 try {
-  process.chdir(__dirname);
-  console.log(`New directory: ${process.cwd()}`);
+    process.chdir(__dirname);
+    console.log(`New directory: ${process.cwd()}`);
 } catch (err) {
-  console.error(`Error changing directory: ${err}`);
+    console.error(`Error changing directory: ${err}`);
 }
 
 // Start
@@ -378,15 +381,88 @@ const rl = readline.createInterface({
     terminal: true
 });
 
-rl.on('line', (line) => {
-    const input = line.trim().toLowerCase();
+// This part is my custom code.
+// Modified from MikuBot.
 
-    if (input === 'stop') {
-        rl.close();
-        safeShutdown('TERMINAL_COMMAND_STOP');
-    } else if (input !== '') {
-        // Handlers for unrecognized console commands
-        console.log(`[INFO] Unknown command: "${line}". Type "stop" to safely shut down the server.`);
+// Create files if they don't exist.
+var dirs = ['./logs', './plugins', './console'];
+for (let i = 0; i < dirs.length; i++) {
+    if (!fs.existsSync(dirs[i])) {
+        console.log(`[INFO] Creating folder ${dirs[i]}.`);
+        fs.mkdirSync(dirs[i]);
+    }
+}
+
+// constants?
+const helpMenu = [];
+const commandList = [];
+const preloadPath = path.join(__dirname, 'console');
+const preloadFolders = fs.readdirSync(preloadPath);
+
+// exports?
+module.exports = {
+    helpMenu: helpMenu,
+    readline: rl,
+    spawn: spawn,
+    safeShutdown,
+}
+
+// stole this code from mikubot lol consult that on how this works
+// probably does some looping stuff?
+// idk lol
+for (const folder of preloadFolders) {
+    const commandsPath = path.join(preloadPath, folder);
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        commandList.push(filePath);
+        const command = require(filePath);
+        if ('execute' in command) {
+            command.execute();
+        } else if ('help' in command) {
+            helpMenu.push(...command.help());
+        }
+    }
+}
+
+// What happens when you press enter?
+rl.on('line', async (line) => {
+    let input = line.trim().toLowerCase();
+
+    // Trim the forward slash.
+    // I should've done this for MikuBot to be honest lol
+    if (input.startsWith("/")) {
+        input = input.slice(1)
+    }
+
+    // Scan the plugin list for commands
+    let validCommand = false;
+    for (let i = 0; i < commandList.length; i++) {
+        const cmd = require(commandList[i]);
+
+        if ('command' in cmd) {
+            validCommand = await cmd.command(input);
+            if (validCommand) {
+                i = commandList.length; // Skip processing more commands if one is valid. Saves time.
+            }
+        }
+    }
+
+    // Only then do we do hardcoded plugins and the stop menu, like the /stop command
+    // Only /stop has a fallback, no other command has a fallback.
+    // I want modularity on this bot!
+    if (validCommand == false) {
+        switch (input) {
+            case 'stop':
+            case 'end':
+                rl.close();
+                safeShutdown('TERMINAL_COMMAND_STOP');
+                break;
+            default:
+
+                // hardcoded error message
+                console.log('[INFO] This command is not a valid command. Type "help" for a list of commands.');
+        }
     }
 });
 
