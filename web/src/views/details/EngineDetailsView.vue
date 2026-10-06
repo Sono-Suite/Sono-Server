@@ -1,0 +1,33 @@
+<script setup lang="ts">
+import ViewSection from '@/components/ViewSection.vue'
+import ItemCard from '@/components/cards/ItemCard.vue'
+import { i18n } from '@/i18n'
+import type { ViewEmit } from '@/views/BaseView'
+import type { ItemDetailsViewProps } from '@/views/details/ItemDetailsView'
+import SimpleItemDetailsView from './SimpleItemDetailsView.vue'
+
+defineProps<ItemDetailsViewProps<'engine'>>()
+
+defineEmits<ViewEmit>()
+</script>
+
+<template>
+    <SimpleItemDetailsView
+        v-bind="$props"
+        @reload="$emit('reload')"
+        @overlay="$emit('overlay', $event)"
+    >
+        <ViewSection :title="i18n.routes.server.details.engine.skin.title">
+            <ItemCard type="skin" :item="data.item.skin" />
+        </ViewSection>
+        <ViewSection :title="i18n.routes.server.details.engine.background.title">
+            <ItemCard type="background" :item="data.item.background" />
+        </ViewSection>
+        <ViewSection :title="i18n.routes.server.details.engine.effect.title">
+            <ItemCard type="effect" :item="data.item.effect" />
+        </ViewSection>
+        <ViewSection :title="i18n.routes.server.details.engine.particle.title">
+            <ItemCard type="particle" :item="data.item.particle" />
+        </ViewSection>
+    </SimpleItemDetailsView>
+</template>

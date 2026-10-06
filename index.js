@@ -2,13 +2,34 @@ const { dateOptions } = require('./config.js');
 global.DateFormatter = new Intl.DateTimeFormat(undefined, dateOptions); // Ensures a global Date Formatter usable in any bot.
 
 const express = require('express');
-const { Sonolus } = require('@sonolus/express');
+const { Sonolus, SonolusSpaShare } = require('@sonolus/express');
 const fs = require('fs');
 const path = require('path');
 const { execSync, spawn } = require('child_process');
 const AdmZip = require('adm-zip');
 const rateLimit = require('express-rate-limit');
 const readline = require('readline');
+
+// Logging script
+// This might honestly be offloaded to a seperate "functions" folder lol
+// Part of the AI generated fixing.
+// INFO: number, text: text, debugToggle: boolean (optional)
+const logging = function(info, text, debugOnly = false){
+    if(debug || !debugOnly){
+        console.log(`[${info}] ${text}`);
+    }
+}
+
+// helps readability ig
+// log type is basically a constant
+const LOG_TYPE = {
+    INFO: "INFO",
+    SUCCESS: "SUCCESS",
+    WARN: "WARN",
+    ERROR: "ERROR",
+    CRITICAL: "CRITICAL",
+    UNKNOWN: "UNKNOWN",
+};
 
 // Define the process directory
 // Just to sync up the process of making a new directory.
@@ -23,9 +44,14 @@ try {
 const startTime = Date.now();
 let newStart = Date.now();
 
+// dependancies
 const { PORT, UPLOADS_DIR, ENGINES_POOL_DIR, LEVELS_POOL_DIR, BANNER_POOL_DIR, SOURCE_DIR, TEMP_EXTRACT_DIR, ADDRESS } = require('./config');
 const { processExtractedFiles } = require('./decompiler');
-const { title, desc, https, debug } = require('./config');
+const { title, desc, https, debug, baseUrl } = require('./config');
+if (!baseUrl.startsWith('/') || !baseUrl.endsWith('/')) {
+    throw new Error('config.js baseUrl must start and end with a slash (for example, / or /server/).');
+}
+const basePath = baseUrl === '/' ? '' : baseUrl.slice(0, -1);
 
 const app = express();
 let serverInstance = null;
@@ -48,11 +74,13 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: "healthy" });
 });
 
-if (debug) console.log("[INFO] Debug mode is enabled.")
+logging(LOG_TYPE.INFO, "Debug mode is enabled.", true);
 
-console.log("[SUCCESS] Phase 1 has begun.")
-console.log("[INFO] Phase 1: Loading engines, levels and banners.\n");
+    
+logging(LOG_TYPE.SUCCESS, "Phase 1 has begun.");
+logging(LOG_TYPE.INFO, "Phase 1: Loading engines, levels and banners.\n");
 newStart = Date.now();
+
 /*
 This function generates the /source on the fly.
 Is this inefficient? Yes, but it allows for MASSIVE flexibility and ease of use.
@@ -64,18 +92,18 @@ function generateSourceOnTheFly() {
         // Delete the source and temporary directories
         if (fs.existsSync(SOURCE_DIR)) {
             fs.rmSync(SOURCE_DIR, { recursive: true, force: true });
-            if (debug) console.log(`[INFO] Purged ${SOURCE_DIR}.`);
+            logging(LOG_TYPE.INFO, `Purged directory: ${SOURCE_DIR}.`, true);
         }
         if (fs.existsSync(TEMP_EXTRACT_DIR)) {
             fs.rmSync(TEMP_EXTRACT_DIR, { recursive: true, force: true });
-            if (debug) console.log(`[INFO] Purged ${TEMP_EXTRACT_DIR}.`);
+            logging(LOG_TYPE.INFO, `Purged directory: ${TEMP_EXTRACT_DIR}.`, true);
         }
 
         // Create clean directories for source and temporary extract.
         fs.mkdirSync(SOURCE_DIR, { recursive: true });
-        if (debug) console.log(`[INFO] Created new ${SOURCE_DIR}`);
+        logging(LOG_TYPE.INFO, `Created new directory: ${SOURCE_DIR}`, true);
         fs.mkdirSync(TEMP_EXTRACT_DIR, { recursive: true });
-        if (debug) console.log(`[INFO] Created new ${TEMP_EXTRACT_DIR}`);
+        logging(LOG_TYPE.INFO, `Created new directory: ${TEMP_EXTRACT_DIR}`, true);
 
         // Make the directories
         const directoryList = [
@@ -87,7 +115,7 @@ function generateSourceOnTheFly() {
         directoryList.forEach(dir => {
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
-                if (debug) console.log(`[INFO] Created ${dir}.`);
+                logging(LOG_TYPE.INFO, `Created ${dir}.`, true);
             }
         });
     } catch (dirError) {
@@ -99,7 +127,7 @@ function generateSourceOnTheFly() {
     let compiledAny = false;
     const prioritizedEnginesList = new Set();
     try {
-        if (debug) console.log(`[INFO] Finding all engines in ${ENGINES_POOL_DIR}...`);
+        logging(LOG_TYPE.INFO, `Finding all engines in ${ENGINES_POOL_DIR}...`, true);
         if (fs.existsSync(ENGINES_POOL_DIR)) {
             const engineItems = fs.readdirSync(ENGINES_POOL_DIR);
 
@@ -108,7 +136,7 @@ function generateSourceOnTheFly() {
                 const itemFolderPath = path.join(ENGINES_POOL_DIR, itemFolder);
 
                 if (fs.statSync(itemFolderPath).isDirectory()) {
-                    if (debug) console.log(`[INFO] Processing Engine: [${itemFolder}]`);
+                    logging(LOG_TYPE.INFO, `Processing Engine: [${itemFolder}]`, true);
 
                     // Run the compiler sweep focusing exclusively on this isolated subfolder branch path block context
                     const engineProcessed = processExtractedFiles(itemFolderPath, 'engines', itemFolderPath, prioritizedEnginesList);
@@ -122,7 +150,7 @@ function generateSourceOnTheFly() {
 
     // Level Scanner
     try {
-        if (debug) console.log(`[INFO] Finding all levels in ${LEVELS_POOL_DIR}...`);
+        logging(LOG_TYPE.INFO, `Finding all levels in ${LEVELS_POOL_DIR}...`, true);
         if (fs.existsSync(LEVELS_POOL_DIR)) {
             const levelItems = fs.readdirSync(LEVELS_POOL_DIR);
 
@@ -131,7 +159,7 @@ function generateSourceOnTheFly() {
                 const itemFolderPath = path.join(LEVELS_POOL_DIR, itemFolder);
 
                 if (fs.statSync(itemFolderPath).isDirectory()) {
-                    if (debug) console.log(`[INFO] Processing level: ${itemFolder}`);
+                    logging(LOG_TYPE.INFO, `Processing level: ${itemFolder}`, true);
 
                     // Route the compilation pass pointing specifically to this individual subfolder path block context
                     const levelsProcessed = processExtractedFiles(itemFolderPath, 'levels', itemFolderPath, prioritizedEnginesList);
@@ -174,7 +202,7 @@ function generateSourceOnTheFly() {
 
                                 lvlJson.engine = targetEngine;
                                 fs.writeFileSync(lvlItemPath, JSON.stringify(lvlJson, null, 4), 'utf8');
-                                if (debug) console.log(`[INFO] Mapped the level [${lvlFolder}] to the directory: ${targetEngine}`);
+                                logging(LOG_TYPE.INFO, `Mapped the level [${lvlFolder}] to the directory: ${targetEngine}`, true);
                             } catch (e) {
                                 console.error(`[ERROR] Level ${lvlFolder} refused to load.`, e.message);
                             }
@@ -204,7 +232,7 @@ function generateSourceOnTheFly() {
 
     // FINALLY, now scan the uploads folders
     try {
-        if (debug) console.log(`[INFO] Loading Sonolus bundled files inside ${UPLOADS_DIR}`);
+        logging(LOG_TYPE.INFO, `Loading Sonolus bundled files inside ${UPLOADS_DIR}`, true);
         const files = fs.readdirSync(UPLOADS_DIR);
         let foundAssets = false;
 
@@ -212,7 +240,7 @@ function generateSourceOnTheFly() {
             const filePath = path.join(UPLOADS_DIR, file);
             const ext = path.extname(file).toLowerCase();
             if (ext === '.zip' || ext === '.scp') {
-                if (debug) console.log(`[INFO] Unzipping package: ${file}...`);
+                logging(LOG_TYPE.INFO, `Unzipping package: ${file}...`, true);
                 try {
                     const zip = new AdmZip(filePath);
                     zip.extractAllTo(TEMP_EXTRACT_DIR, true);
@@ -231,7 +259,7 @@ function generateSourceOnTheFly() {
     } catch (err) { console.error('[ERROR] Failed processing uploads safely:', err.message); }
 
     // Removes the temp directory
-    if (debug) console.log(`[INFO] ${TEMP_EXTRACT_DIR} removed.`);
+    logging(LOG_TYPE.INFO, `${TEMP_EXTRACT_DIR} removed.`, true);
     if (fs.existsSync(TEMP_EXTRACT_DIR)) {
         try { fs.rmSync(TEMP_EXTRACT_DIR, { recursive: true, force: true }); } catch (e) { }
     }
@@ -285,19 +313,53 @@ const sonolus = new Sonolus({
 // Make sonolus load files
 try {
     const absolutePackPath = path.resolve(__dirname, 'pack');
-    if (debug) console.log(`[INFO] Sonolus is now loading files from ${absolutePackPath}`);
+    logging(LOG_TYPE.INFO, `Sonolus is now loading files from ${absolutePackPath}`, true);
     sonolus.load(absolutePackPath);
 } catch (loadError) {
     console.error('[ERROR] Conflict has occured:', loadError.message);
     process.exit(1);
 }
 
+// Advertise the request's reachable host in Sonolus items (0.0.0.0 is only for binding).
+app.use((req, res, next) => {
+    sonolus.address = `${httpStatus}${req.get('host')}${basePath}`;
+    next();
+});
+
 app.use(sonolus.router);
+if (basePath) app.use(basePath, sonolus.router);
 
 app.use((err, req, res, next) => {
     console.error('[ERROR] Unhandled exception has occured in the sonolus router:', err.stack);
     res.status(500).json({ error: 'Internal Server Error', description: err.message });
 });
+
+// Serve the official Sonolus Server Web single-page client and its share links.
+const webDirectory = path.join(__dirname, 'web');
+try {
+    if (!fs.existsSync(path.join(webDirectory, 'node_modules', '.package-lock.json'))) {
+        logging(LOG_TYPE.INFO, 'Installing web client dependencies.');
+        execSync('npm ci', { cwd: webDirectory, stdio: 'inherit' });
+    }
+
+    const translationsDirectory = path.join(webDirectory, 'src', 'i18n');
+    const missingTranslations = fs.readdirSync(translationsDirectory, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .some((entry) => !fs.existsSync(path.join(translationsDirectory, `generated-${entry.name}.ts`)));
+    if (missingTranslations) {
+        logging(LOG_TYPE.INFO, 'Generating missing web client translations.');
+        execSync('npm run generate-i18n', { cwd: webDirectory, stdio: 'inherit' });
+    }
+
+    logging(LOG_TYPE.INFO, 'Building web client from config.js settings.');
+    execSync('npm run build', { cwd: webDirectory, stdio: 'inherit' });
+} catch (webBuildError) {
+    console.error('[ERROR] Failed to build the web client.', webBuildError.message);
+    process.exit(1);
+}
+
+const webShareRouter = new SonolusSpaShare(path.join(webDirectory, 'dist')).router;
+app.use(basePath || '/', webShareRouter);
 
 // OFFLINE TERMINAL TERMINATION BLUEPRINT
 function safeShutdown(triggerSource) {
@@ -327,7 +389,7 @@ function cleanupAndExit() {
             rl.close();
         }
         if (fs.existsSync(TEMP_EXTRACT_DIR)) {
-            console.log(`[INFO] Removing ${TEMP_EXTRACT_DIR} directory`);
+            logging(LOG_TYPE.INFO, `Removing ${TEMP_EXTRACT_DIR} directory`);
             fs.rmSync(TEMP_EXTRACT_DIR, { recursive: true, force: true });
         }
     } catch (cleanupError) {
@@ -342,9 +404,9 @@ function startServerWithBackoff(attempt = 0, baseDelay = 500, maxRetries = 6) {
     // Bound to 0.0.0.0 explicitly instead of an incomplete IP stub
     const tempServer = app.listen(PORT, ADDRESS, () => {
         serverInstance = tempServer;
-        console.log(`\n[INFO] Sonolus server successfully bound and listening at ${httpStatus}${ADDRESS}:${PORT}`);
-        console.log(`[INFO] Server started in ${(Date.now() - newStart) / 1000}s. (${(Date.now() - startTime) / 1000}s total)`)
-        console.log(`[INFO] Type "stop" and press Enter to safely shut down the server at any time.\n`);
+        logging(LOG_TYPE.INFO, `Sonolus server successfully bound and listening at ${httpStatus}${ADDRESS}:${PORT}`);
+        logging(LOG_TYPE.INFO, `Server started in ${(Date.now() - newStart) / 1000}s. (${(Date.now() - startTime) / 1000}s total)`);
+        logging(LOG_TYPE.INFO, `Type "stop" and press Enter to safely shut down the server at any time.\n`);
     });
 
     tempServer.on('error', (err) => {
@@ -388,7 +450,7 @@ const rl = readline.createInterface({
 var dirs = ['./logs', './plugins', './console'];
 for (let i = 0; i < dirs.length; i++) {
     if (!fs.existsSync(dirs[i])) {
-        console.log(`[INFO] Creating folder ${dirs[i]}.`);
+        logging(LOG_TYPE.INFO, `Creating folder ${dirs[i]}.`);
         fs.mkdirSync(dirs[i]);
     }
 }

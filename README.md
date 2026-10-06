@@ -18,18 +18,16 @@ Run this server by running `node install.js`, which configures first time setup 
 
 This server comes pre-bundled with ProSeka Faithful
 
+## Web Interface
+
+The [official Sonolus Server Web client](https://github.com/Sonolus/sonolus-server-web), based on upstream commit `dbed17e`, is served at the server root. It is limited to browsing levels and their required engines, skins, backgrounds, effects, and particles, with keyword search and links to open items in Sonolus.
+
+Install its dependencies with `npm --prefix ./web ci`, then build after changing files in `web/` with `npm run build-web`. The generated `web/dist/` files are served alongside the Sonolus API.
+
 Node.js is required for this server.
 
 ## Legal
 
 This code is under the [Nexint TOS](https://nexint.ca/tos)
 
-Engine assets are not mine, they are the property of UntitledCharts, Sonolus, and more.
-
-However, the [Nexint TOS](https://nexint.ca/tos) is not fully complete, and you should use the included LICENSE.MD file instead. If you're using Sono-Utils, this does not apply, and you should follow the terms set out in Sono-Utils (not Sono-Server)
-
 This code is proprietary and source available.
-
-## AI Disclosure
-
-Parts of this code have been generated with AI. This project falls under AI assisted, but not fully AI generated.

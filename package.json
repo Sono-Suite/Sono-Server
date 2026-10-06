@@ -12,6 +12,7 @@
     "pack-server": "sonolus-pack",
     "start": "node index.js",
     "dev-server": "sonolus-pack && node index.js",
+    "build-web": "npm --prefix ./web run build",
     "build:cli-exe": "boxednode --source install.js --target dist/sono-server.exe --openssl-no-asm"
   },
   "devDependencies": {

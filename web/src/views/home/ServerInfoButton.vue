@@ -1,0 +1,75 @@
+<script setup lang="ts">
+import { auth } from '@/auth'
+import AppLink from '@/components/AppLink.vue'
+import { i18n, i18nText } from '@/i18n'
+import { icons } from '@/icons'
+import IconConfiguration from '@/icons/IconConfiguration.vue'
+import IconLogin from '@/icons/IconLogin.vue'
+import IconLogout from '@/icons/IconLogout.vue'
+import type { ServerInfo, ServerInfoButton } from '@sonolus/core'
+import { dynamicIcons } from '../../dynamicIcons'
+
+defineProps<{
+    button: ServerInfoButton
+    data: ServerInfo
+}>()
+
+const webAuth = !!import.meta.env.VITE_WEB_AUTH
+</script>
+
+<template>
+    <template v-if="button.type === 'authentication'">
+        <div
+            v-if="!webAuth"
+            class="flex w-120 flex-col items-center gap-10 bg-button-disabled p-10 text-text-disabled sm:w-144 sm:gap-12 sm:p-12"
+            inert
+        >
+            <IconLogin class="size-60 fill-current sm:size-72" />
+            <span class="text-center">{{ i18n.routes.server.home.login }}</span>
+        </div>
+        <AppLink
+            v-else
+            class="flex w-120 flex-col items-center gap-10 bg-button-normal p-10 transition-colors hover:bg-button-highlighted focus-visible:outline active:bg-button-pressed sm:w-144 sm:gap-12 sm:p-12"
+            :to="{ name: 'authentication' }"
+        >
+            <component
+                :is="auth ? IconLogout : IconLogin"
+                class="size-60 fill-current sm:size-72"
+            />
+            <span class="text-center">{{
+                auth ? i18n.routes.server.home.logout : i18n.routes.server.home.login
+            }}</span>
+        </AppLink>
+    </template>
+    <AppLink
+        v-else-if="button.type === 'configuration'"
+        class="flex w-120 flex-col items-center gap-10 bg-button-normal p-10 transition-colors hover:bg-button-highlighted focus-visible:outline active:bg-button-pressed sm:w-144 sm:gap-12 sm:p-12"
+        :to="{ name: 'configuration', data }"
+    >
+        <IconConfiguration class="size-60 fill-current sm:size-72" />
+        <span class="text-center">{{ i18n.routes.server.home.configuration }}</span>
+    </AppLink>
+    <AppLink
+        v-else
+        class="relative flex w-120 flex-col items-center gap-10 bg-button-normal p-10 transition-colors hover:bg-button-highlighted focus-visible:outline active:bg-button-pressed sm:w-144 sm:gap-12 sm:p-12"
+        :to="
+            button.itemName
+                ? { name: `${button.type}-details`, params: { name: button.itemName } }
+                : { name: `${button.type}-info`, query: { type: button.infoType } }
+        "
+    >
+        <component
+            :is="dynamicIcons[button.icon ?? ''] ?? icons[button.type]"
+            class="size-60 fill-current sm:size-72"
+        />
+        <span class="text-center">{{
+            button.title ? i18nText(button.title) : i18n.routes.server.home[button.type]
+        }}</span>
+        <div
+            v-if="button.badgeCount"
+            class="absolute right-0 top-0 flex size-30 items-center justify-center bg-warning sm:size-36"
+        >
+            <span>{{ button.badgeCount }}</span>
+        </div>
+    </AppLink>
+</template>

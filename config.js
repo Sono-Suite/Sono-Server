@@ -13,6 +13,9 @@ module.exports = {
     // Visual
     title: "Sono-Overlay Local Server",
     desc: "Custom-coded, lightweight Sonolus server for Sono-Overlay users.",
+    themeColor: "#000020",
+    // Public path for the server and web client. Keep the leading and trailing slashes.
+    baseUrl: "/",
 
     // Change these if you know what you are doing.
     debug: false,

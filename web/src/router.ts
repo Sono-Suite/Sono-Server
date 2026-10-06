@@ -1,0 +1,78 @@
+import { paths } from '@/utils/item'
+import BaseView from '@/views/BaseView.vue'
+import HomeView from '@/views/home/HomeView.vue'
+import ItemInfoView from '@/views/infos/ItemInfoView.vue'
+import ItemSearchView from '@/views/ItemSearchView.vue'
+import JumpToPageView from '@/views/JumpToPageView.vue'
+import ItemListView from '@/views/lists/ItemListView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
+import type { Component } from 'vue'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import ItemDetailsView from './views/details/ItemDetailsView.vue'
+
+const defineRoutes = (
+    ...routes: {
+        name: string
+        path: string
+        component: Component
+        props?: object
+    }[]
+) =>
+    routes.map(({ name, path, component, props }): RouteRecordRaw => ({
+        name,
+        path,
+        component: BaseView,
+        props: ({ params, query }) => ({
+            url: (component as { url: never }).url,
+            loading: (component as { loading: never }).loading,
+            error: (component as { error: never }).error,
+            title: (component as { title: never }).title,
+            banner: (component as { banner: never }).banner,
+            component,
+            componentProps: { ...params, query, ...props },
+        }),
+    }))
+
+export const router = createRouter({
+    history: createWebHistory(import.meta.env.BASE_URL),
+    routes: defineRoutes(
+        { name: 'home', path: '/', component: HomeView },
+
+        ...(
+            ['level', 'engine', 'skin', 'background', 'effect', 'particle'] as const
+        ).flatMap((type) => [
+            {
+                name: `${type}-info`,
+                path: `/${paths[type]}/info`,
+                component: ItemInfoView,
+                props: { type },
+            },
+            {
+                name: `${type}-list`,
+                path: `/${paths[type]}/list`,
+                component: ItemListView,
+                props: { type },
+            },
+            {
+                name: `${type}-search`,
+                path: `/${paths[type]}/search`,
+                component: ItemSearchView,
+                props: { type },
+            },
+            {
+                name: `${type}-jump`,
+                path: `/${paths[type]}/jump`,
+                component: JumpToPageView,
+                props: { type },
+            },
+            {
+                name: `${type}-details`,
+                path: `/${paths[type]}/:name`,
+                component: ItemDetailsView,
+                props: { type },
+            },
+        ]),
+
+        { name: 'notFound', path: '/:_(.*)', component: NotFoundView },
+    ),
+})

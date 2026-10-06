@@ -82,10 +82,10 @@ const addLevel = async function () {
     }
 
     console.log('\n[INFO] Configuring New Level...');
-    const inputTitle = await askQuestion('🎵 Level Title (e.g., "Execution Clap"):\n> ');
-    const inputArtist = await askQuestion('🎤 Artist / Band Name (e.g., "Trap Chick"):\n> ');
-    const inputAuthor = await askQuestion('✍️  Chart Author / Mapper (e.g., "Nexint#496350"):\n> ');
-    const inputRating = await askQuestion('📊 Chart Difficulty Rating Level (e.g., "31"):\n> ');
+    const inputTitle = await askQuestion('🎵 Level Title (e.g., "Unknown"):\n> ');
+    const inputArtist = await askQuestion('🎤 Artist / Band Name (e.g., "Unknown"):\n> ');
+    const inputAuthor = await askQuestion('✍️  Chart Author / Mapper (e.g., "Unknown#1000"):\n> ');
+    const inputRating = await askQuestion('📊 Chart Difficulty Rating Level (e.g., "0"):\n> ');
 
     let chosenEngine = "Next-RUSH";
     const availableEngines = getAvailableEngines(ENGINES_POOL_DIR);
@@ -300,7 +300,7 @@ async function runInstallationPass() {
     console.log('5. Delete everything.');
     console.log('6. Exit this GUI');
 
-    const choice = await askQuestion('\n[INFO] Choose an option (Enter 1, 2, 3, 4, 5, or 6):\n> ');
+    const choice = await askQuestion('\n📋 Select an installation path (Enter 1, 2, 3, 4, 5, or 6):\n> ');
     normalizedChoice = choice.trim();
 
     // Choose an option:

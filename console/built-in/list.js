@@ -89,14 +89,14 @@ module.exports = {
                         listBool = true;
                         break;
                     default:
-                        console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', 'Invalid parameter.');
-                        console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', 'Valid parameters:');
-                        console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '- Levels (l): List levels');
-                        console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '- Engines (e): List engines');
-                        console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '- Backgrounds (b): List Backgrounds');
-                        console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '- Effects (f): List Effects');
-                        console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '- Particles (p): List Particles');
-                        console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '- Skins (s): List Skins');
+                        console.log('[INFO]', 'Invalid parameter.');
+                        console.log('[INFO]', 'Valid parameters:');
+                        console.log('[INFO]', '- Levels (l): List levels');
+                        console.log('[INFO]', '- Engines (e): List engines');
+                        console.log('[INFO]', '- Backgrounds (b): List Backgrounds');
+                        console.log('[INFO]', '- Effects (f): List Effects');
+                        console.log('[INFO]', '- Particles (p): List Particles');
+                        console.log('[INFO]', '- Skins (s): List Skins');
                 }
                 if (listBool) {
                     // Define the page

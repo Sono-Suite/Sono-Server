@@ -76,10 +76,10 @@ async function processAndLinkAsset(sourceInput, targetFolder, destinationName) {
 function writeLevelManifest(targetSongFolder, title, artist, author, rating, preferredEngine = "Next-RUSH") {
     const levelJsonReference = {
         version: 1,
-        title: title.trim() || "Execution Clap",
+        title: title.trim() || "Unknown",
         rating: parseInt(rating.trim(), 10) || 31,
-        author: author.trim() || "Nexint#496350",
-        artists: artist.trim() || "Trap Chick",
+        author: author.trim() || "Unknown#1000",
+        artists: artist.trim() || "Unknown",
         engine: preferredEngine
     };
 

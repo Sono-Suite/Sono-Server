@@ -1,0 +1,49 @@
+<script setup lang="ts">
+import OpenInSonolus from '@/components/OpenInSonolus.vue'
+import RichText from '@/components/RichText.vue'
+import ServerInfoButton from '@/views/home/ServerInfoButton.vue'
+import { viewOptions } from '@/views/viewOptions'
+import type { ServerInfo } from '@sonolus/core'
+import { i18nMultilineText, i18nText } from '../../i18n'
+
+defineOptions(
+    viewOptions<typeof props>({
+        url: () => '/info',
+        loading: ({ i18n }) => i18n.clients.customServer.server.info.loading,
+        error: ({ i18n }) =>
+            i18n.clients.customServer.server.info.error(import.meta.env.VITE_TITLE),
+
+        banner: ({ data }) => data?.banner?.url ?? undefined,
+    }),
+)
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-useless-assignment
+const props = defineProps<{
+    data: ServerInfo
+}>()
+
+const visibleTypes = new Set(['level', 'engine', 'skin', 'background', 'effect', 'particle'])
+</script>
+
+<template>
+    <h1 class="text-center text-30 font-bold sm:text-36">
+        {{ i18nText(data.title) }}
+    </h1>
+    <div class="flex justify-center">
+        <OpenInSonolus />
+    </div>
+    <RichText
+        v-if="data.description"
+        class="mt-30 text-center sm:mt-36"
+        :text="i18nMultilineText(data.description)"
+    />
+
+    <div class="mt-30 flex flex-wrap justify-center gap-10 sm:mt-36 sm:gap-12">
+        <template
+            v-for="button in data.buttons.filter(({ type }) => visibleTypes.has(type))"
+            :key="button.type"
+        >
+            <ServerInfoButton :button :data />
+        </template>
+    </div>
+</template>

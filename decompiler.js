@@ -85,7 +85,7 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
     // Sanitize the folder name to replace spaces with dashes
     // Sanitize the folder name to replace spaces with dashes
     let sanitizedFolderName = coreItem.name.trim().replace(/\s+/g, '-');
-    if(activeCategory === 'engines'){
+    if (activeCategory === 'engines') {
         sanitizedFolderName = sanitizedFolderName.toLowerCase();
     }
     let targetFolder = path.join(SOURCE_DIR, activeCategory, sanitizedFolderName);
@@ -96,14 +96,14 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
             const existingItemPath = path.join(targetFolder, 'item.json');
             if (fs.existsSync(existingItemPath)) {
                 const existingItem = JSON.parse(fs.readFileSync(existingItemPath, 'utf8'));
-                
+
                 // Ensure authors or subtitles are localized strings before direct comparisons
                 const oldAuthor = typeof existingItem.author === 'object' ? (existingItem.author.en || '') : existingItem.author;
                 const newAuthor = typeof coreItem.author === 'object' ? (coreItem.author.en || '') : coreItem.author;
 
                 if (oldAuthor !== newAuthor) {
                     if (debug) console.log(`[WARN] Naming conflict detected for "${sanitizedFolderName}". Resolving Suffix...`);
-                    
+
                     const suffix = coreItem.version ? `v${coreItem.version}` : Math.random().toString(36).substring(2, 6);
                     sanitizedFolderName = `${sanitizedFolderName}-${suffix}`;
                     targetFolder = path.join(SOURCE_DIR, activeCategory, sanitizedFolderName);
@@ -117,9 +117,9 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
         // Safe check matching base or suffixed lower case strings
         if (prioritizedEngines.has(sanitizedFolderName.toLowerCase()) || prioritizedEngines.has(coreItem.name.trim().replace(/\s+/g, '-').toLowerCase())) {
             if (debug) console.log(`[INFO] Prioritizing ${ENGINES_POOL_DIR}: ${sanitizedFolderName}`);
-            
+
             if (fs.existsSync(targetFolder)) {
-                try { fs.rmSync(targetFolder, { recursive: true, force: true }); } catch (cleanupErr) {}
+                try { fs.rmSync(targetFolder, { recursive: true, force: true }); } catch (cleanupErr) { }
             }
             return false;
         }
@@ -242,7 +242,7 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
                 const thumbObj = coreItem.thumbnail || (coreItem.skin && coreItem.skin.thumbnail) || { hash: 'thumbnail' };
                 const dataObj = coreItem.data || { hash: 'data' };
                 const configObj = coreItem.configuration || { hash: 'configuration' };
-                
+
                 const playObj = coreItem.playData || coreItem.play || { hash: 'playData' };
                 const watchObj = coreItem.watchData || coreItem.watch || { hash: 'watchData' };
                 const previewObj = coreItem.previewData || coreItem.preview || { hash: 'previewData' };
@@ -257,7 +257,7 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
                 decompileAsset(previewObj, 'previewData.json', targetFolder, lookupSourceDir);
                 decompileAsset(tutorialObj, 'tutorialData.json', targetFolder, lookupSourceDir);
                 if (coreItem.rom) decompileAsset(coreItem.rom, 'rom.bin', targetFolder, lookupSourceDir);
-                
+
                 // ✅ THE FIX: Force the written file to update its internal skin mapping property 
                 // if it's an upload archive pulling a ghost "ProSekaFaithful" file reference.
                 try {
@@ -312,8 +312,16 @@ function decompileAndWriteItem(rawObj, activeCategory, lookupSourceDir, prioriti
                 decompileAsset({ hash: 'jacket.png' }, 'cover.png', targetFolder, lookupSourceDir);
                 decompileAsset({ hash: 'music.mp3' }, 'bgm.mp3', targetFolder, lookupSourceDir);
 
-                decompileAsset({ hash: 'level.data' }, 'dataData.json', targetFolder, lookupSourceDir);
-                decompileAsset({ hash: 'level.data' }, 'data.json', targetFolder, lookupSourceDir);
+                if (fs.existsSync(path.join(lookupSourceDir, 'level.json.gz'))) {
+                    // level.json.gz
+                    decompileAsset({ hash: 'level.json.gz' }, 'dataData.json', targetFolder, lookupSourceDir);
+                    decompileAsset({ hash: 'level.json.gz' }, 'data.json', targetFolder, lookupSourceDir);
+                } else {
+                    // compatibility
+                    decompileAsset({ hash: 'level.data' }, 'dataData.json', targetFolder, lookupSourceDir);
+                    decompileAsset({ hash: 'level.data' }, 'data.json', targetFolder, lookupSourceDir);
+                }
+
 
                 if (fs.existsSync(path.join(lookupSourceDir, 'music_pre.mp3'))) {
                     decompileAsset({ hash: 'music_pre.mp3' }, 'previewData.json', targetFolder, lookupSourceDir);
