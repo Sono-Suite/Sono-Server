@@ -1,6 +1,12 @@
 # Sono-Server
 
-This acts as a quick little sonolus server
+This acts as a quick little sonolus server for development / testing purposes that also happens to have a full web interface.
+
+HUGE credit to https://github.com/Sonolus/sonolus-server-web for like the entire front end lol - This server takes that front end pretty much
+
+If requested, the front end portion will be removed + recoded.
+
+Hope yall understand! - Nexint
 
 ## Prerequisites
 
